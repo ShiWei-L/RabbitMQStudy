@@ -24,16 +24,32 @@ namespace RabbitMQServer
             //创建返回一个新的频道
             using (var channel = connection.CreateModel())
             {
-                //使用默认的交换机
+                //声明一个direct类型的交换机
+                channel.ExchangeDeclare("firstExchange", "direct", true, false, null);
+
 
                 //声明队列
                 channel.QueueDeclare("firstTest", true, false, false, null);
-                //发布消息
-                var msg = Encoding.UTF8.GetBytes("Hello RabbitMQ");
-                channel.BasicPublish(string.Empty, routingKey: "firstTest", basicProperties: null, body: msg);
+
+
+                //绑定队列
+                channel.QueueBind("firstTest", "firstExchange", "firstExchange_Demo_firstTest", null);
+
+
+                //发布一百个消息
+
+                for (var i = 0; i < 100; i++)
+                {
+                    var msg = Encoding.UTF8.GetBytes($"{i} :Hello RabbitMQ");
+                    channel.BasicPublish("firstExchange", routingKey: "firstExchange_Demo_firstTest", basicProperties: null, body: msg);
+                }
+
+                Console.Write("发布成功！");
+
             }
+
+            Console.ReadKey();
 
         }
     }
 }
-    
