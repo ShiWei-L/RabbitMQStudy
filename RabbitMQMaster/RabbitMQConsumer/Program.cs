@@ -7,20 +7,19 @@ namespace RabbitMQConsumer
 {
     class Program
     {
-
         static void Main(string[] args)
         {
 
             bool flag = true;
-            string level = "";
+            string pattern = "";
             while (flag)
             {
-                Console.WriteLine("请指定要接收的消息级别");
-                level = Console.ReadLine();
-                if (level == "info" || level == "error" || level == "debug")
+                Console.WriteLine("请选择Ccnsumer模式  1(发短信)/2(发邮件)");
+                pattern = Console.ReadLine();
+                if (pattern == "1" || pattern == "2")
                     flag = false;
                 else
-                    Console.Write("仅支持info、debug与error级别");
+                    Console.Write("请做出正确的选择");
             }
 
 
@@ -28,14 +27,13 @@ namespace RabbitMQConsumer
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
-                //声明交换机 direct模式
-                channel.ExchangeDeclare("LogExchange", "direct", true, false, null);
+                //声明交换机 Fanout模式
+                channel.ExchangeDeclare("fanoutExchange", ExchangeType.Fanout, true, false, null);
                 //根据声明使用的队列
-                var queueName = level == "info" ? "Log_else" : level == "debug" ? "Log_else" : "Log_error";
+                var queueName = pattern == "1" ? "sms" : "emai";
                 channel.QueueDeclare(queueName, true, false, false, null);
                 //进行绑定
-                channel.QueueBind(queueName, "LogExchange", level, null);
-
+                channel.QueueBind(queueName, "fanoutExchange", string.Empty, null);
 
                 //创建consumbers
                 var consumer = new EventingBasicConsumer(channel);
@@ -44,7 +42,8 @@ namespace RabbitMQConsumer
                 {
                     var msg = Encoding.UTF8.GetString(e.Body);
 
-                    Console.WriteLine(msg);
+                    var action = (pattern == "1" ? "发短信" : "发邮件");
+                    Console.WriteLine($"给{msg}{action}");
                 };
 
                 //进行消费
@@ -54,6 +53,56 @@ namespace RabbitMQConsumer
 
             }
         }
+
+
+        #region 日志消息消费者
+        //static void Main(string[] args)
+        //{
+
+        //    bool flag = true;
+        //    string level = "";
+        //    while (flag)
+        //    {
+        //        Console.WriteLine("请指定要接收的消息级别");
+        //        level = Console.ReadLine();
+        //        if (level == "info" || level == "error" || level == "debug")
+        //            flag = false;
+        //        else
+        //            Console.Write("仅支持info、debug与error级别");
+        //    }
+
+
+
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //声明交换机 direct模式
+        //        channel.ExchangeDeclare("LogExchange", "direct", true, false, null);
+        //        //根据声明使用的队列
+        //        var queueName = level == "info" ? "Log_else" : level == "debug" ? "Log_else" : "Log_error";
+        //        channel.QueueDeclare(queueName, true, false, false, null);
+        //        //进行绑定
+        //        channel.QueueBind(queueName, "LogExchange", level, null);
+
+
+        //        //创建consumbers
+        //        var consumer = new EventingBasicConsumer(channel);
+
+        //        consumer.Received += (sender, e) =>
+        //        {
+        //            var msg = Encoding.UTF8.GetString(e.Body);
+
+        //            Console.WriteLine(msg);
+        //        };
+
+        //        //进行消费
+        //        channel.BasicConsume(queueName, true, consumer);
+
+        //        Console.ReadKey();
+
+        //    }
+        //}
+        #endregion
 
         #region 第一版与第二版简单Demo、交换机队列绑定
         //static void Main(string[] args)

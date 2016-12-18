@@ -7,20 +7,18 @@ namespace RabbitMQServer
 {
     class Program
     {
-        #region 日志消息发布者
+
+
         static void Main(string[] args)
         {
             //创建返回一个新的频道
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-                //发布一百个消息
-                for (var i = 0; i < 100; i++)
-                {
-                    //对i进行求余来决定日志的级别
-                    var routingkey = i % 2 == 0 ? "info" : i % 3 == 0 ? "debug" : "error";
-                    var msg = Encoding.UTF8.GetBytes($"{i} :{routingkey}Message");
-                    channel.BasicPublish("LogExchange", routingKey: routingkey, basicProperties: null, body: msg);
-                }
+
+                //发布一个消息
+                var msg = Encoding.UTF8.GetBytes($"二狗子");
+                //不需要指定routingkey,指定了也没用.因为交换机是fanout类型
+                channel.BasicPublish("fanoutExchange", routingKey: string.Empty, basicProperties: null, body: msg);
 
                 Console.Write("发布成功！");
 
@@ -29,6 +27,30 @@ namespace RabbitMQServer
             Console.ReadKey();
 
         }
+
+
+        #region 日志消息发布者
+        //static void Main(string[] args)
+        //{
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        //发布一百个消息
+        //        for (var i = 0; i < 100; i++)
+        //        {
+        //            //对i进行求余来决定日志的级别
+        //            var routingkey = i % 2 == 0 ? "info" : i % 3 == 0 ? "debug" : "error";
+        //            var msg = Encoding.UTF8.GetBytes($"{i} :{routingkey}Message");
+        //            channel.BasicPublish("LogExchange", routingKey: routingkey, basicProperties: null, body: msg);
+        //        }
+
+        //        Console.Write("发布成功！");
+
+        //    }
+
+        //    Console.ReadKey();
+
+        //}
         #endregion
 
 
