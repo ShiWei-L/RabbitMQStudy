@@ -3,10 +3,14 @@ using System.Text;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQHelper;
+using System.Collections.Generic;
+
 namespace RabbitMQConsumer
 {
     class Program
     {
+
+
         static void Main(string[] args)
         {
 
@@ -14,7 +18,7 @@ namespace RabbitMQConsumer
             string pattern = "";
             while (flag)
             {
-                Console.WriteLine("请选择Ccnsumer模式  1(发短信)/2(发邮件)");
+                Console.WriteLine("请选择headers匹配模式  1(any)/2(all)");
                 pattern = Console.ReadLine();
                 if (pattern == "1" || pattern == "2")
                     flag = false;
@@ -26,14 +30,21 @@ namespace RabbitMQConsumer
 
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-
-                //声明交换机 Fanout模式
-                channel.ExchangeDeclare("fanoutExchange", ExchangeType.Fanout, true, false, null);
                 //根据声明使用的队列
-                var queueName = pattern == "1" ? "sms" : "emai";
-                channel.QueueDeclare(queueName, true, false, false, null);
+                var headersType = pattern == "1" ? "any" : "all";
+
+                //声明交换机 headers模式
+                channel.ExchangeDeclare("headersExchange", ExchangeType.Headers, true, false);
+
+                channel.QueueDeclare("headersQueue", true, false, false, null);
                 //进行绑定
-                channel.QueueBind(queueName, "fanoutExchange", string.Empty, null);
+                channel.QueueBind("headersQueue", "headersExchange", string.Empty, new Dictionary<string, object>
+                {
+                    //第一个匹配格式 ，第二与第三个则是匹配项
+                    { "x-match",headersType},
+                    { "user","admin"},
+                    { "pwd","123456"}
+                });
 
                 //创建consumbers
                 var consumer = new EventingBasicConsumer(channel);
@@ -42,12 +53,11 @@ namespace RabbitMQConsumer
                 {
                     var msg = Encoding.UTF8.GetString(e.Body);
 
-                    var action = (pattern == "1" ? "发短信" : "发邮件");
-                    Console.WriteLine($"给{msg}{action}");
+                    Console.WriteLine($"{msg}");
                 };
 
                 //进行消费
-                channel.BasicConsume(queueName, true, consumer);
+                channel.BasicConsume("headersQueue", true, consumer);
 
                 Console.ReadKey();
 
@@ -55,7 +65,56 @@ namespace RabbitMQConsumer
         }
 
 
-        #region 日志消息消费者
+        #region fanout模式 
+        //static void Main(string[] args)
+        //{
+
+        //    bool flag = true;
+        //    string pattern = "";
+        //    while (flag)
+        //    {
+        //        Console.WriteLine("请选择Ccnsumer模式  1(发短信)/2(发邮件)");
+        //        pattern = Console.ReadLine();
+        //        if (pattern == "1" || pattern == "2")
+        //            flag = false;
+        //        else
+        //            Console.Write("请做出正确的选择");
+        //    }
+
+
+
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //声明交换机 Fanout模式
+        //        channel.ExchangeDeclare("fanoutExchange", ExchangeType.Fanout, true, false, null);
+        //        //根据声明使用的队列
+        //        var queueName = pattern == "1" ? "sms" : "emai";
+        //        channel.QueueDeclare(queueName, true, false, false, null);
+        //        //进行绑定
+        //        channel.QueueBind(queueName, "fanoutExchange", string.Empty, null);
+
+        //        //创建consumbers
+        //        var consumer = new EventingBasicConsumer(channel);
+
+        //        consumer.Received += (sender, e) =>
+        //        {
+        //            var msg = Encoding.UTF8.GetString(e.Body);
+
+        //            var action = (pattern == "1" ? "发短信" : "发邮件");
+        //            Console.WriteLine($"给{msg}{action}");
+        //        };
+
+        //        //进行消费
+        //        channel.BasicConsume(queueName, true, consumer);
+
+        //        Console.ReadKey();
+
+        //    }
+        //}
+        #endregion
+
+        #region 日志消息消费者 direct模式根据routingkey
         //static void Main(string[] args)
         //{
 
@@ -152,5 +211,7 @@ namespace RabbitMQConsumer
         //    }
         //}
         #endregion
+
+
     }
 }

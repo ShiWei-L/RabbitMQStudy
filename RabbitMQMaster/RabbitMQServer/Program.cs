@@ -2,6 +2,7 @@
 using System;
 using System.Text;
 using RabbitMQHelper;
+using System.Collections.Generic;
 
 namespace RabbitMQServer
 {
@@ -15,10 +16,21 @@ namespace RabbitMQServer
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
+                //创建properties
+                var properties = channel.CreateBasicProperties();
+
+                //往内容的headers中塞入值 
+                properties.Headers = new Dictionary<string, object>()
+                {
+                    {"user","admin" },
+                    {"pwd","123456" }
+                };
+
+
                 //发布一个消息
                 var msg = Encoding.UTF8.GetBytes($"二狗子");
-                //不需要指定routingkey,指定了也没用.因为交换机是fanout类型
-                channel.BasicPublish("fanoutExchange", routingKey: string.Empty, basicProperties: null, body: msg);
+
+                channel.BasicPublish("headersExchange", routingKey: string.Empty, basicProperties: properties, body: msg);
 
                 Console.Write("发布成功！");
 
@@ -29,7 +41,30 @@ namespace RabbitMQServer
         }
 
 
-        #region 日志消息发布者
+
+        #region fanout模式
+        //static void Main(string[] args)
+        //{
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //发布一个消息
+        //        var msg = Encoding.UTF8.GetBytes($"二狗子");
+        //        //不需要指定routingkey,指定了也没用.因为交换机是fanout类型
+        //        channel.BasicPublish("fanoutExchange", routingKey: string.Empty, basicProperties: null, body: msg);
+
+        //        Console.Write("发布成功！");
+
+        //    }
+
+        //    Console.ReadKey();
+
+        //} 
+        #endregion
+
+
+        #region 日志消息发布者  direct模式根据routngkey
         //static void Main(string[] args)
         //{
         //    //创建返回一个新的频道
