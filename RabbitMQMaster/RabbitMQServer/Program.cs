@@ -12,33 +12,66 @@ namespace RabbitMQServer
 
         static void Main(string[] args)
         {
-            //创建返回一个新的频道
-            using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+            var flag = true;
+            while (flag)
             {
 
-                //创建properties
-                var properties = channel.CreateBasicProperties();
+                Console.WriteLine("请输入要发布的消息 key|msg。 或者按Ctrl+ C退出");
 
-                //往内容的headers中塞入值 
-                properties.Headers = new Dictionary<string, object>()
+                var msg = Console.ReadLine();
+
+                //创建返回一个新的频道
+                using (var channel = RabbitMqHelper.GetConnection().CreateModel())
                 {
-                    {"user","admin" },
-                    {"pwd","123456" }
-                };
 
+                    var msgs = msg.Split('|');
 
-                //发布一个消息
-                var msg = Encoding.UTF8.GetBytes($"二狗子");
+                    //发布一个消息
+                    var msgbody = Encoding.UTF8.GetBytes(msgs[1]);
 
-                channel.BasicPublish("headersExchange", routingKey: string.Empty, basicProperties: properties, body: msg);
+                    channel.BasicPublish("TopicExchange", routingKey: string.Empty, basicProperties: null, body: msgbody);
 
-                Console.Write("发布成功！");
+                    Console.Write("发布成功！");
 
+                }
             }
 
             Console.ReadKey();
 
         }
+
+
+        #region headers 模式
+        //static void Main(string[] args)
+        //{
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //创建properties
+        //        var properties = channel.CreateBasicProperties();
+
+        //        //往内容的headers中塞入值 
+        //        properties.Headers = new Dictionary<string, object>()
+        //        {
+        //            {"user","admin" },
+        //            {"pwd","123456" }
+        //        };
+
+
+        //        //发布一个消息
+        //        var msg = Encoding.UTF8.GetBytes($"二狗子");
+
+        //        channel.BasicPublish("headersExchange", routingKey: string.Empty, basicProperties: properties, body: msg);
+
+        //        Console.Write("发布成功！");
+
+        //    }
+
+        //    Console.ReadKey();
+
+        //}
+        #endregion
 
 
 

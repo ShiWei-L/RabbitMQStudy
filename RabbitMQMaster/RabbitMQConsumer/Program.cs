@@ -15,36 +15,32 @@ namespace RabbitMQConsumer
         {
 
             bool flag = true;
-            string pattern = "";
+            var key = "";
             while (flag)
             {
-                Console.WriteLine("请选择headers匹配模式  1(any)/2(all)");
-                pattern = Console.ReadLine();
-                if (pattern == "1" || pattern == "2")
-                    flag = false;
+                Console.WriteLine("请输入路由正则  .代表一个字符 *代表零到多个字符");
+                key = Console.ReadLine();
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    Console.Write("请输入路由");
+                    continue;
+                }
                 else
-                    Console.Write("请做出正确的选择");
+                    flag = false;
+
             }
-
-
 
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
                 //根据声明使用的队列
-                var headersType = pattern == "1" ? "any" : "all";
+                var QueueName = key + "Queue";
 
                 //声明交换机 headers模式
-                channel.ExchangeDeclare("headersExchange", ExchangeType.Headers, true, false);
+                channel.ExchangeDeclare("TopicExchange", ExchangeType.Topic, true, false);
 
-                channel.QueueDeclare("headersQueue", true, false, false, null);
+                channel.QueueDeclare(QueueName, true, false, false, null);
                 //进行绑定
-                channel.QueueBind("headersQueue", "headersExchange", string.Empty, new Dictionary<string, object>
-                {
-                    //第一个匹配格式 ，第二与第三个则是匹配项
-                    { "x-match",headersType},
-                    { "user","admin"},
-                    { "pwd","123456"}
-                });
+                channel.QueueBind(QueueName, "TopicExchange", key, null);
 
                 //创建consumbers
                 var consumer = new EventingBasicConsumer(channel);
@@ -53,16 +49,72 @@ namespace RabbitMQConsumer
                 {
                     var msg = Encoding.UTF8.GetString(e.Body);
 
-                    Console.WriteLine($"{msg}");
+                    Console.WriteLine($"{e.RoutingKey}：{msg}");
                 };
 
                 //进行消费
-                channel.BasicConsume("headersQueue", true, consumer);
+                channel.BasicConsume(QueueName, true, consumer);
 
                 Console.ReadKey();
 
             }
         }
+
+
+        #region headers exchange模式
+        //static void Main(string[] args)
+        //{
+
+        //    bool flag = true;
+        //    string pattern = "";
+        //    while (flag)
+        //    {
+        //        Console.WriteLine("请选择headers匹配模式  1(any)/2(all)");
+        //        pattern = Console.ReadLine();
+        //        if (pattern == "1" || pattern == "2")
+        //            flag = false;
+        //        else
+        //            Console.Write("请做出正确的选择");
+        //    }
+
+
+
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        //根据声明使用的队列
+        //        var headersType = pattern == "1" ? "any" : "all";
+
+        //        //声明交换机 headers模式
+        //        channel.ExchangeDeclare("headersExchange", ExchangeType.Headers, true, false);
+
+        //        channel.QueueDeclare("headersQueue", true, false, false, null);
+        //        //进行绑定
+        //        channel.QueueBind("headersQueue", "headersExchange", string.Empty, new Dictionary<string, object>
+        //        {
+        //            //第一个匹配格式 ，第二与第三个则是匹配项
+        //            { "x-match",headersType},
+        //            { "user","admin"},
+        //            { "pwd","123456"}
+        //        });
+
+        //        //创建consumbers
+        //        var consumer = new EventingBasicConsumer(channel);
+
+        //        consumer.Received += (sender, e) =>
+        //        {
+        //            var msg = Encoding.UTF8.GetString(e.Body);
+
+        //            Console.WriteLine($"{msg}");
+        //        };
+
+        //        //进行消费
+        //        channel.BasicConsume("headersQueue", true, consumer);
+
+        //        Console.ReadKey();
+
+        //    }
+        //}
+        #endregion
 
 
         #region fanout模式 
@@ -212,6 +264,7 @@ namespace RabbitMQConsumer
         //}
         #endregion
 
-
+
+
     }
 }
