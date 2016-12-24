@@ -3,6 +3,8 @@ using System;
 using System.Text;
 using RabbitMQHelper;
 using System.Collections.Generic;
+using RabbitMQ.Client.MessagePatterns;
+using RabbitMQ.Client.Events;
 
 namespace RabbitMQServer
 {
@@ -12,33 +14,95 @@ namespace RabbitMQServer
 
         static void Main(string[] args)
         {
-            var flag = true;
-            while (flag)
+
+            //创建返回一个新的频道
+            using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
-                Console.WriteLine("请输入要发布的消息 key|msg。 或者按Ctrl+ C退出");
+                channel.QueueBindNoWait
 
-                var msg = Console.ReadLine();
 
-                //创建返回一个新的频道
-                using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+                //创建一个rpc queue
+                channel.QueueDeclare("testQueue", true, true, false, null);
+
+
+                using (var channel2 = RabbitMqHelper.GetConnection().CreateModel())
                 {
-
-                    var msgs = msg.Split('|');
-
-                    //发布一个消息
-                    var msgbody = Encoding.UTF8.GetBytes(msgs[1]);
-
-                    channel.BasicPublish("TopicExchange", routingKey: string.Empty, basicProperties: null, body: msgbody);
-
-                    Console.Write("发布成功！");
-
+                    var consumer = new EventingBasicConsumer(channel2);
+                    channel2.BasicGet("testQueue", true);
                 }
+
+
+                using (var connection = RabbitMqHelper.GetNewConnection())
+                using (var channel2 = connection.CreateModel())
+                {
+                    var consumer = new EventingBasicConsumer(channel2);
+                    channel2.BasicGet("testQueue", true);
+                }
+
+
+                Console.ReadKey();
+
             }
 
-            Console.ReadKey();
-
         }
+
+
+        #region rpc server
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //创建一个rpc queue
+        //        channel.QueueDeclare("RpcQueue", true, false, false, null);
+
+        //        SimpleRpcServer rpc = new SmsSimpleRpcServer(new Subscription(channel, "RpcQueue"));
+
+        //        Console.WriteLine("服务端启动成功");
+
+        //        rpc.MainLoop();
+        //        Console.ReadKey();
+
+        //    }
+
+        //} 
+        #endregion
+
+
+        #region topic 模式
+        //static void Main(string[] args)
+        //{
+        //    var flag = true;
+        //    while (flag)
+        //    {
+
+        //        Console.WriteLine("请输入要发布的消息 key|msg。 或者按Ctrl+ C退出");
+
+        //        var msg = Console.ReadLine();
+
+        //        //创建返回一个新的频道
+        //        using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //        {
+
+        //            var msgs = msg.Split('|');
+
+        //            //发布一个消息
+        //            var msgbody = Encoding.UTF8.GetBytes(msgs[1]);
+
+        //            channel.BasicPublish("TopicExchange", routingKey: string.Empty, basicProperties: null, body: msgbody);
+
+        //            Console.Write("发布成功！");
+
+        //        }
+        //    }
+
+        //    Console.ReadKey();
+
+        //} 
+        #endregion
 
 
         #region headers 模式
@@ -170,5 +234,42 @@ namespace RabbitMQServer
 
 
 
+    }
+
+
+
+    /// <summary>
+    /// 发送短信的Rpc
+    /// </summary>
+    public class SmsSimpleRpcServer : SimpleRpcServer
+    {
+        public SmsSimpleRpcServer(Subscription subscription) : base(subscription)
+        {
+        }
+
+        /// <summary>
+        /// 执行完成后进行h回调
+        /// </summary>
+        /// <param name="isRedelivered"></param>
+        /// <param name="requestProperties"></param>
+        /// <param name="body"></param>
+        /// <param name="replyProperties"></param>
+        /// <returns></returns>
+        public override byte[] HandleSimpleCall(bool isRedelivered, IBasicProperties requestProperties, byte[] body, out IBasicProperties replyProperties)
+        {
+            replyProperties = null;
+            return Encoding.UTF8.GetBytes($"给{Encoding.UTF8.GetString(body)}发送短信成功");
+        }
+
+
+        /// <summary>
+        /// 进行处理
+        /// </summary>
+        /// <param name="evt"></param>
+        public override void ProcessRequest(BasicDeliverEventArgs evt)
+        {
+            // todo.....
+            base.ProcessRequest(evt);
+        }
     }
 }

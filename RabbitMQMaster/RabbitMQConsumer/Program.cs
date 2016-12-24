@@ -4,61 +4,94 @@ using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using RabbitMQHelper;
 using System.Collections.Generic;
+using RabbitMQ.Client.MessagePatterns;
 
 namespace RabbitMQConsumer
 {
     class Program
     {
 
-
         static void Main(string[] args)
         {
 
-            bool flag = true;
-            var key = "";
-            while (flag)
-            {
-                Console.WriteLine("请输入路由正则  .代表一个字符 *代表零到多个字符");
-                key = Console.ReadLine();
-                if (string.IsNullOrWhiteSpace(key))
-                {
-                    Console.Write("请输入路由");
-                    continue;
-                }
-                else
-                    flag = false;
-
-            }
 
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-                //根据声明使用的队列
-                var QueueName = key + "Queue";
-
-                //声明交换机 headers模式
-                channel.ExchangeDeclare("TopicExchange", ExchangeType.Topic, true, false);
-
-                channel.QueueDeclare(QueueName, true, false, false, null);
-                //进行绑定
-                channel.QueueBind(QueueName, "TopicExchange", key, null);
-
-                //创建consumbers
-                var consumer = new EventingBasicConsumer(channel);
-
-                consumer.Received += (sender, e) =>
+                //创建client的rpc
+                SimpleRpcClient client = new SimpleRpcClient(channel, new PublicationAddress(exchangeType: ExchangeType.Direct, exchangeName: string.Empty, routingKey: "RpcQueue"));
+                bool flag = true;
+                var sendmsg = "";
+                while (flag)
                 {
-                    var msg = Encoding.UTF8.GetString(e.Body);
+                    Console.WriteLine("请输入要发送的消息");
+                    sendmsg = Console.ReadLine();
+                    if (string.IsNullOrWhiteSpace(sendmsg))
+                    {
+                        Console.Write("请输入消息");
+                        continue;
+                    }
 
-                    Console.WriteLine($"{e.RoutingKey}：{msg}");
-                };
+                    var msg = client.Call(Encoding.UTF8.GetBytes(sendmsg));
 
-                //进行消费
-                channel.BasicConsume(QueueName, true, consumer);
+                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+
+
+                }
 
                 Console.ReadKey();
 
             }
         }
+        #region topic 模式
+        //static void Main(string[] args)
+        //{
+
+        //    bool flag = true;
+        //    var key = "";
+        //    while (flag)
+        //    {
+        //        Console.WriteLine("请输入路由正则  .代表一个字符 *代表零到多个字符");
+        //        key = Console.ReadLine();
+        //        if (string.IsNullOrWhiteSpace(key))
+        //        {
+        //            Console.Write("请输入路由");
+        //            continue;
+        //        }
+        //        else
+        //            flag = false;
+
+        //    }
+
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        //根据声明使用的队列
+        //        var QueueName = key + "Queue";
+
+        //        //声明交换机 headers模式
+        //        channel.ExchangeDeclare("TopicExchange", ExchangeType.Topic, true, false);
+
+        //        channel.QueueDeclare(QueueName, true, false, false, null);
+        //        //进行绑定
+        //        channel.QueueBind(QueueName, "TopicExchange", key, null);
+
+        //        //创建consumbers
+        //        var consumer = new EventingBasicConsumer(channel);
+
+        //        consumer.Received += (sender, e) =>
+        //        {
+        //            var msg = Encoding.UTF8.GetString(e.Body);
+
+        //            Console.WriteLine($"{e.RoutingKey}：{msg}");
+        //        };
+
+        //        //进行消费
+        //        channel.BasicConsume(QueueName, true, consumer);
+
+        //        Console.ReadKey();
+
+        //    }
+        //} 
+        #endregion
 
 
         #region headers exchange模式

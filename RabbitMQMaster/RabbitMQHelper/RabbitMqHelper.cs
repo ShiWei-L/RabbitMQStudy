@@ -32,5 +32,20 @@ namespace RabbitMQHelper
             }
             return Connection;
         }
+
+        public static IConnection GetNewConnection()
+        {
+
+            //从工厂中拿到实例 本地host、用户admin
+            var factory = new ConnectionFactory()
+            {
+                UserName = "admin",
+                Password = "admin",
+                HostName = "localhost"
+            };
+            Connection = factory.CreateConnection();
+            return Connection;
+
+        }
     }
 }
