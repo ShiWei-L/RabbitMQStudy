@@ -10,38 +10,75 @@ namespace RabbitMQConsumer
 {
     class Program
     {
-
         static void Main(string[] args)
         {
-
-
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-                //创建client的rpc
-                SimpleRpcClient client = new SimpleRpcClient(channel, new PublicationAddress(exchangeType: ExchangeType.Direct, exchangeName: string.Empty, routingKey: "RpcQueue"));
-                bool flag = true;
-                var sendmsg = "";
-                while (flag)
+
+                //声明一个带有死信功能功能的queue exchange: dlexchange  queue: dlexqueue
+                channel.QueueDeclare("testqueue", true, false, false, new Dictionary<string, object>
                 {
-                    Console.WriteLine("请输入要发送的消息");
-                    sendmsg = Console.ReadLine();
-                    if (string.IsNullOrWhiteSpace(sendmsg))
-                    {
-                        Console.Write("请输入消息");
-                        continue;
-                    }
+                    { "x-message-ttl",5000},
+                    { "x-dead-letter-exchange", "dlexchange" },
+                    { "x-dead-letter-routing-key", "dlexqueue"}
+                });
 
-                    var msg = client.Call(Encoding.UTF8.GetBytes(sendmsg));
+                //负责死信的交换机
+                channel.ExchangeDeclare("dlexchange", ExchangeType.Direct, true, false, null);
 
-                    Console.WriteLine(Encoding.UTF8.GetString(msg));
+                channel.QueueDeclare("dlexqueue", true, false, false, null);
+                channel.QueueBind("dlexqueue", "dlexchange", "dlexqueue", null);
 
+                var consumer = new EventingBasicConsumer(channel);
 
-                }
+                consumer.Received += (sender, e) =>
+                {
+                    Console.WriteLine(Encoding.UTF8.GetString(e.Body));
+                };
+                channel.BasicConsume("testqueue", true, consumer);
+
+                Console.WriteLine("consumer启动成功");
 
                 Console.ReadKey();
 
             }
         }
+
+        #region RPC客户端
+        //static void Main(string[] args)
+        //{
+
+
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        //创建client的rpc
+        //        SimpleRpcClient client = new SimpleRpcClient(channel, new PublicationAddress(exchangeType: ExchangeType.Direct, exchangeName: string.Empty, routingKey: "RpcQueue"));
+        //        bool flag = true;
+        //        var sendmsg = "";
+        //        while (flag)
+        //        {
+        //            Console.WriteLine("请输入要发送的消息");
+        //            sendmsg = Console.ReadLine();
+        //            if (string.IsNullOrWhiteSpace(sendmsg))
+        //            {
+        //                Console.Write("请输入消息");
+        //                continue;
+        //            }
+
+        //            var msg = client.Call(Encoding.UTF8.GetBytes(sendmsg));
+
+        //            Console.WriteLine(Encoding.UTF8.GetString(msg));
+
+
+        //        }
+
+        //        Console.ReadKey();
+
+        //    }
+        //} 
+        #endregion
+
+
         #region topic 模式
         //static void Main(string[] args)
         //{

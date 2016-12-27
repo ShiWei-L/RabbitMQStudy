@@ -19,50 +19,68 @@ namespace RabbitMQServer
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
-                //声明一个queue，最大长度10，最大大小2048bytes
-                channel.QueueDeclare("queue", true, false, false, new Dictionary<string, object>
-                {
-                    { "x-max-length", 10 },
-                    { "x-max-length-bytes", 2048}
-                });
-
-
-                //声明一个queue，queue五秒内而且未被任何形式的消费,则被删除
-                channel.QueueDeclare("queue", true, false, false, new Dictionary<string, object> { { "x-expires", 5000 } });
-
-
-                //声明一个queue，里面的内容自发布起五秒后被删除
-                channel.QueueDeclare("messagettlqueue", true, false, false, new Dictionary<string, object> { { "x-message-ttl", 5000 } });
-
-                var properties = channel.CreateBasicProperties();
-                //设置过期时间
-                properties.Expiration = "5000";
-                channel.BasicPublish(null, "queue", properties, Encoding.UTF8.GetBytes("我五秒后就会消失"));
-
-                ////创建一个rpc queue
-                //channel.QueueDeclare("testQueue", true, true, false, null,);
-
-
-                //using (var channel2 = RabbitMqHelper.GetConnection().CreateModel())
-                //{
-                //    var consumer = new EventingBasicConsumer(channel2);
-                //    channel2.BasicGet("testQueue", true);
-                //}
-
-
-                //using (var connection = RabbitMqHelper.GetNewConnection())
-                //using (var channel2 = connection.CreateModel())
-                //{
-                //    var consumer = new EventingBasicConsumer(channel2);
-                //    channel2.BasicGet("testQueue", true);
-                //}
-
+                channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes("我五秒后就会消失"));
 
                 Console.ReadKey();
 
             }
 
         }
+
+
+        #region 声明queue的参数们的作用
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //声明一个queue，最大长度10，最大大小2048bytes
+        //        channel.QueueDeclare("queue", true, false, false, new Dictionary<string, object>
+        //        {
+        //            { "x-max-length", 10 },
+        //            { "x-max-length-bytes", 2048}
+        //        });
+
+
+        //        //声明一个queue，queue五秒内而且未被任何形式的消费,则被删除
+        //        channel.QueueDeclare("queue", true, false, false, new Dictionary<string, object> { { "x-expires", 5000 } });
+
+
+        //        //声明一个queue，里面的内容自发布起五秒后被删除
+        //        channel.QueueDeclare("messagettlqueue", true, false, false, new Dictionary<string, object> { { "x-message-ttl", 5000 } });
+
+        //        var properties = channel.CreateBasicProperties();
+        //        //设置过期时间
+        //        properties.Expiration = "5000";
+        //        channel.BasicPublish(null, "queue", properties, Encoding.UTF8.GetBytes("我五秒后就会消失"));
+
+        //        ////创建一个rpc queue
+        //        //channel.QueueDeclare("testQueue", true, true, false, null,);
+
+
+        //        //using (var channel2 = RabbitMqHelper.GetConnection().CreateModel())
+        //        //{
+        //        //    var consumer = new EventingBasicConsumer(channel2);
+        //        //    channel2.BasicGet("testQueue", true);
+        //        //}
+
+
+        //        //using (var connection = RabbitMqHelper.GetNewConnection())
+        //        //using (var channel2 = connection.CreateModel())
+        //        //{
+        //        //    var consumer = new EventingBasicConsumer(channel2);
+        //        //    channel2.BasicGet("testQueue", true);
+        //        //}
+
+
+        //        Console.ReadKey();
+
+        //    }
+
+        //} 
+        #endregion
 
 
         #region rpc server
