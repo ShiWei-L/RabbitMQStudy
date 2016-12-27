@@ -11,7 +11,6 @@ namespace RabbitMQServer
     class Program
     {
 
-
         static void Main(string[] args)
         {
 
@@ -19,13 +18,38 @@ namespace RabbitMQServer
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
-                channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes("我五秒后就会消失"));
+                channel.QueueDeclare("priorityQueue", true, false, false, new Dictionary<string, object> { { "x-max-priority", 5 } });
+
+                var properties = channel.CreateBasicProperties();
+
+                for (var i = 0; i < 6; i++)
+                {
+                    properties.Priority = (byte)i;
+                    channel.BasicPublish(string.Empty, "priorityQueue", properties, Encoding.UTF8.GetBytes($"{i}级别的消息"));
+                }
 
                 Console.ReadKey();
 
             }
 
         }
+
+        #region dead letter
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes("我五秒后就会消失"));
+
+        //        Console.ReadKey();
+
+        //    }
+
+        //} 
+        #endregion
 
 
         #region 声明queue的参数们的作用
