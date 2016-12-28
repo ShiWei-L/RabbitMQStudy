@@ -5,11 +5,13 @@ using RabbitMQHelper;
 using System.Collections.Generic;
 using RabbitMQ.Client.MessagePatterns;
 using RabbitMQ.Client.Events;
+using System.Diagnostics;
 
 namespace RabbitMQServer
 {
     class Program
     {
+
 
         static void Main(string[] args)
         {
@@ -17,22 +19,58 @@ namespace RabbitMQServer
             //创建返回一个新的频道
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-
-                channel.QueueDeclare("priorityQueue", true, false, false, new Dictionary<string, object> { { "x-max-priority", 5 } });
-
-                var properties = channel.CreateBasicProperties();
-
-                for (var i = 0; i < 6; i++)
+                var watch = new Stopwatch();
+                try
                 {
-                    properties.Priority = (byte)i;
-                    channel.BasicPublish(string.Empty, "priorityQueue", properties, Encoding.UTF8.GetBytes($"{i}级别的消息"));
+                    watch.Start();
+                    //channel.TxSelect();
+                    for (var i = 0; i < 10000; i++)
+                    {
+                        channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
+                    }
+                    //channel.TxCommit();
+                    //等待发布成功并返回发布状态
+                    // bool isok = channel.WaitForConfirms(new TimeSpan(1, 20, 30));
+                    watch.Stop();
+                    Console.WriteLine($"发布一万条没有消息确认,耗时{watch.ElapsedMilliseconds}毫秒");
+                    Console.ReadKey();
                 }
-
-                Console.ReadKey();
+                catch (Exception e)
+                {
+                    //watch.Stop();
+                    //Console.WriteLine($"发布一万条使用了Confirm,耗时{watch.ElapsedMilliseconds}毫秒");
+                    //回退
+                    //channel.TxRollback();
+                }
 
             }
 
         }
+
+        #region 死信与优先级别
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        channel.QueueDeclare("priorityQueue", true, false, false, new Dictionary<string, object> { { "x-max-priority", 5 } });
+
+        //        var properties = channel.CreateBasicProperties();
+
+        //        for (var i = 0; i < 6; i++)
+        //        {
+        //            properties.Priority = (byte)i;
+        //            channel.BasicPublish(string.Empty, "priorityQueue", properties, Encoding.UTF8.GetBytes($"{i}级别的消息"));
+        //        }
+
+        //        Console.ReadKey();
+
+        //    }
+
+        //} 
+        #endregion
 
         #region dead letter
         //static void Main(string[] args)

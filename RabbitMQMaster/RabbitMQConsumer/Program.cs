@@ -10,32 +10,52 @@ namespace RabbitMQConsumer
 {
     class Program
     {
+
         static void Main(string[] args)
         {
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
 
-                //声明一个带有死信功能功能的queue exchange: dlexchange  queue: dlexqueue
-                channel.QueueDeclare("testqueue", true, false, false, new Dictionary<string, object>
-                {
-                    { "x-message-ttl",5000},
-                    { "x-dead-letter-exchange", "dlexchange" },
-                    { "x-dead-letter-routing-key", "dlexqueue"}
-                });
-
-                //负责死信的交换机
-                channel.ExchangeDeclare("dlexchange", ExchangeType.Direct, true, false, null);
-
-                channel.QueueDeclare("dlexqueue", true, false, false, null);
-                channel.QueueBind("dlexqueue", "dlexchange", "dlexqueue", null);
+                //声明队列
+                channel.QueueDeclare("testqueue", true, false, false, null);
 
                 var consumer = new EventingBasicConsumer(channel);
 
-                consumer.Received += (sender, e) =>
-                {
-                    Console.WriteLine(Encoding.UTF8.GetString(e.Body));
-                };
-                channel.BasicConsume("testqueue", true, consumer);
+
+                var result = channel.BasicGet("testqueue", false);
+
+                Console.WriteLine(Encoding.UTF8.GetString(result.Body));
+
+                //扔掉消息
+                //channel.BasicReject(result.DeliveryTag, false);
+
+                //退回消息
+                channel.BasicReject(result.DeliveryTag, true);
+
+                //批量退回或删除,中间的参数 是否批量 true是/false否 (也就是只一条)
+                //channel.BasicNack(result.DeliveryTag, true, true);
+
+                ////补发消息 true退回到queue中/false只补发给当前的consumer
+                //channel.BasicRecover(true);
+
+
+                var result2 = channel.BasicGet("testqueue", false);
+
+                Console.WriteLine(Encoding.UTF8.GetString(result2.Body));
+
+                //consumer.Received += (sender, e) =>
+                //{
+                //    Console.WriteLine(Encoding.UTF8.GetString(e.Body));
+
+                //    //扔掉消息
+                //    channel.BasicReject(e.DeliveryTag, false);
+
+                //    //再还给queue
+                //    //channel.BasicReject(e.DeliveryTag, true);
+                //};
+
+                //不自动确认
+                channel.BasicConsume("testqueue", false, consumer);
 
                 Console.WriteLine("consumer启动成功");
 
@@ -43,6 +63,42 @@ namespace RabbitMQConsumer
 
             }
         }
+
+        #region 死信
+        //static void Main(string[] args)
+        //{
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+
+        //        //声明一个带有死信功能功能的queue exchange: dlexchange  queue: dlexqueue
+        //        channel.QueueDeclare("testqueue", true, false, false, new Dictionary<string, object>
+        //        {
+        //            { "x-message-ttl",5000},
+        //            { "x-dead-letter-exchange", "dlexchange" },
+        //            { "x-dead-letter-routing-key", "dlexqueue"}
+        //        });
+
+        //        //负责死信的交换机
+        //        channel.ExchangeDeclare("dlexchange", ExchangeType.Direct, true, false, null);
+
+        //        channel.QueueDeclare("dlexqueue", true, false, false, null);
+        //        channel.QueueBind("dlexqueue", "dlexchange", "dlexqueue", null);
+
+        //        var consumer = new EventingBasicConsumer(channel);
+
+        //        consumer.Received += (sender, e) =>
+        //        {
+        //            Console.WriteLine(Encoding.UTF8.GetString(e.Body));
+        //        };
+        //        channel.BasicConsume("testqueue", true, consumer);
+
+        //        Console.WriteLine("consumer启动成功");
+
+        //        Console.ReadKey();
+
+        //    }
+        //} 
+        #endregion
 
         #region RPC客户端
         //static void Main(string[] args)
