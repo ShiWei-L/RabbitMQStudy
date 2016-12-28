@@ -12,40 +12,63 @@ namespace RabbitMQServer
     class Program
     {
 
-
         static void Main(string[] args)
         {
 
             //创建返回一个新的频道
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-                var watch = new Stopwatch();
-                try
+                //声明一个懒队列
+                channel.QueueDeclare("lazyqueue", true, false, false, new Dictionary<string, object>
                 {
-                    watch.Start();
-                    //channel.TxSelect();
-                    for (var i = 0; i < 10000; i++)
-                    {
-                        channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
-                    }
-                    //channel.TxCommit();
-                    //等待发布成功并返回发布状态
-                    // bool isok = channel.WaitForConfirms(new TimeSpan(1, 20, 30));
-                    watch.Stop();
-                    Console.WriteLine($"发布一万条没有消息确认,耗时{watch.ElapsedMilliseconds}毫秒");
-                    Console.ReadKey();
-                }
-                catch (Exception e)
+                    { "x-queue-mode","lazy"}
+                });
+
+                for (var i = 0; i < 10000; i++)
                 {
-                    //watch.Stop();
-                    //Console.WriteLine($"发布一万条使用了Confirm,耗时{watch.ElapsedMilliseconds}毫秒");
-                    //回退
-                    //channel.TxRollback();
+                    channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
                 }
 
             }
 
         }
+
+
+        #region 确认机制 
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        var watch = new Stopwatch();
+        //        try
+        //        {
+        //            watch.Start();
+        //            //channel.TxSelect();
+        //            for (var i = 0; i < 10000; i++)
+        //            {
+        //                channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
+        //            }
+        //            //channel.TxCommit();
+        //            //等待发布成功并返回发布状态
+        //            // bool isok = channel.WaitForConfirms(new TimeSpan(1, 20, 30));
+        //            watch.Stop();
+        //            Console.WriteLine($"发布一万条没有消息确认,耗时{watch.ElapsedMilliseconds}毫秒");
+        //            Console.ReadKey();
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            //watch.Stop();
+        //            //Console.WriteLine($"发布一万条使用了Confirm,耗时{watch.ElapsedMilliseconds}毫秒");
+        //            //回退
+        //            //channel.TxRollback();
+        //        }
+
+        //    }
+
+        //} 
+        #endregion
 
         #region 死信与优先级别
         //static void Main(string[] args)
