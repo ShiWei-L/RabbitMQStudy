@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using RabbitMQ.Client.MessagePatterns;
 using RabbitMQ.Client.Events;
 using System.Diagnostics;
+using System.Threading;
 
 namespace RabbitMQServer
 {
@@ -18,20 +19,51 @@ namespace RabbitMQServer
             //创建返回一个新的频道
             using (var channel = RabbitMqHelper.GetConnection().CreateModel())
             {
-                //声明一个懒队列
-                channel.QueueDeclare("lazyqueue", true, false, false, new Dictionary<string, object>
-                {
-                    { "x-queue-mode","lazy"}
-                });
+                channel.QueueDeclare("test1", true, false, false, null);
 
+                var properties = channel.CreateBasicProperties();
+                properties.Persistent = true;
                 for (var i = 0; i < 10000; i++)
                 {
-                    channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
+                    try
+                    {
+                        channel.BasicPublish(string.Empty, "test1", properties, Encoding.UTF8.GetBytes($"这是{i}个消息"));
+                        Thread.Sleep(1000);
+                        Console.WriteLine($"发布消息 {i}");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex.Message);
+                        i--;
+                    }
                 }
 
             }
 
         }
+
+        #region 懒队列
+        //static void Main(string[] args)
+        //{
+
+        //    //创建返回一个新的频道
+        //    using (var channel = RabbitMqHelper.GetConnection().CreateModel())
+        //    {
+        //        //声明一个懒队列
+        //        channel.QueueDeclare("lazyqueue", true, false, false, new Dictionary<string, object>
+        //        {
+        //            { "x-queue-mode","lazy"}
+        //        });
+
+        //        for (var i = 0; i < 10000; i++)
+        //        {
+        //            channel.BasicPublish(string.Empty, "testqueue", null, Encoding.UTF8.GetBytes($"这是{i}个消息"));
+        //        }
+
+        //    }
+
+        //}
+        #endregion
 
 
         #region 确认机制 

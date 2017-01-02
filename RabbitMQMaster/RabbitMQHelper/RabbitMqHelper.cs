@@ -23,10 +23,17 @@ namespace RabbitMQHelper
                 //从工厂中拿到实例 本地host、用户admin
                 var factory = new ConnectionFactory()
                 {
+                    HostName = "192.168.1.117",
                     UserName = "admin",
                     Password = "admin",
-                    HostName = "localhost"
+                    AutomaticRecoveryEnabled = true,
+                    TopologyRecoveryEnabled = true,
+                    Port = 25672
+
+
                 };
+
+
                 Connection = factory.CreateConnection();
                 return Connection;
             }
@@ -39,10 +46,16 @@ namespace RabbitMQHelper
             //从工厂中拿到实例 本地host、用户admin
             var factory = new ConnectionFactory()
             {
+                HostName = "192.168.1.117",
                 UserName = "admin",
                 Password = "admin",
-                HostName = "localhost"
+                AutomaticRecoveryEnabled = true,
+                TopologyRecoveryEnabled = true,
+                Port = 25672
+
             };
+
+
             Connection = factory.CreateConnection();
             return Connection;
 
